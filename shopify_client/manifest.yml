@@ -1,0 +1,5 @@
+version: "v1"
+name: Shopify Client
+description: Client that interacts with shopify stores.
+contact_email: contact@example.com
+legal_info_url: https://www.example.com/legal
