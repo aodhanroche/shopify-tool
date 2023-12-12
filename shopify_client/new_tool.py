@@ -21,7 +21,7 @@ class ShopifyClient2(BaseTool):
                 {
                     Literal(
                         "method",
-                        description="Shopify method to execute. Examples: productByHandle, collection, cart, cartLinesAdd, search, checkout"
+                        description="Shopify method to execute. Example: getproducts"
                     ): str,
                     Literal(
                         "params",

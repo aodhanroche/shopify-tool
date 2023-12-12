@@ -8,7 +8,8 @@ load_dotenv()
 
 storefront_api_urls = [
     "https://shopify.dev/docs/api/storefront",
-
+    "https://shopify.dev/docs/custom-storefronts/building-with-the-storefront-api/cart/manage",
+    "https://shopify.dev/docs/custom-storefronts/building-with-the-storefront-api/customer-accounts"
 ]
 
 artifacts = []
