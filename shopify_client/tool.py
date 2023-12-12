@@ -71,3 +71,63 @@ class ShopifyClient(BaseTool):
                 ])
         except exceptions.RequestException as err:
             return ErrorArtifact(str(err))
+
+    @activity(
+        config={
+            "description": "Can be used to get the price and details of a product in a Shopify store",
+            "schema": Schema(
+                {
+                    Literal(
+                        "query",
+                        description="Shopify store client that can describe a product and give its price"
+                    ): str
+                }
+            )
+        }
+    )
+    def product_details(self, params: dict) -> TextArtifact | ErrorArtifact:
+        from requests import post, exceptions
+
+        values = params["values"]
+        handle = values.get("product_handle")
+        query = values.get("product_price")
+
+        url = f"https://{self.storename}.{self.schema_endpoint}"
+
+        body = {
+            "query": dedent(
+                f"""
+                query ProductPricing {{ 
+                    product(handle: "{handle}") {{ 
+                        variants(first: 1) {{ 
+                            nodes {{ 
+                                price {{
+                                    amount
+                                    currencyCode
+                                }}
+                            }} 
+                        }}
+                    }}
+                }}
+                """
+            ),
+            "variables": {"handle": handle, "query": query},
+        }
+
+        try:
+            response = post(
+                url,
+                json=body,
+                headers={"X-Shopify-Storefront-Access-Token": self.access_token},
+                timeout=self.timeout,
+            ).json()
+
+            if "errors" in response:
+                return ErrorArtifact(response["errors"])
+            else:
+                variant = response["data"]["product"]["variants"]["nodes"][0]
+                price = variant["price"]["amount"]
+                currency_code = variant["price"]["currencyCode"]
+                return TextArtifact(f"Price: {price} {currency_code}")
+        except exceptions.RequestException as err:
+            return ErrorArtifact(str(err))
