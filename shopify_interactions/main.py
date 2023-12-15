@@ -125,6 +125,42 @@ def get_product_description(product: str):
         logging.info("There was an error")
 
 
+def get_product_id(product: str) -> id:
+    url = f"https://{storename}.{endpoint}"
+
+    body = {
+        "query": dedent(
+            f"""
+                query ProductByHandle($first: Int,) {{ 
+                    products(first: $first) {{ 
+                        edges {{ 
+                            cursor 
+                            node {{ 
+                                id
+                            }} 
+                        }}
+                    }}
+                }}
+            """
+        ),
+        "variables": {"first": 1, "query": product},
+    }
+
+    try:
+        full_response = post(
+            url,
+            json=body,
+            headers={"X-Shopify-Storefront-Access-Token": access_token},
+            timeout=timeout
+        ).json()
+
+        result = full_response['data']['products']['edges'][0]['node']['id']
+        return f"{result}"
+
+    except Exception as e:
+        logging.info("There was an error")
+
+
 def create_cart() -> str:
     url = f"https://{storename}.{endpoint}"
 
@@ -189,9 +225,10 @@ def create_cart() -> str:
         logging.info("There was an error")
 
 
+# Broken V
 def add_to_cart(cart_id: str, product: str) -> str:
     url = f"https://{storename}.{endpoint}"
-
+    product_id = get_product_id(product)
     body = {
         "query": dedent(
             f"""
@@ -215,7 +252,7 @@ def add_to_cart(cart_id: str, product: str) -> str:
                 }}
             """
         ),
-        "variables": {"cartId": cart_id, "lines": product, "id": something, "quantity": 1}
+        "variables": {"cartId": cart_id, "lines": product, "id": product_id, "quantity": 1}
     }
 
     try:
@@ -232,7 +269,58 @@ def add_to_cart(cart_id: str, product: str) -> str:
         logging.info("There was an error")
 
 
-print(add_to_cart("gid://shopify/Cart/Z2NwLXVzLWNlbnRyYWwxOjAxSEhGU1pUUTVGSEpOVDU0WUJKWjJTRUNF", "The Minimal Snowboard"))
+# Creates a customer, but exceeded some kind of limit before could tailor the response.
+# We would want it to spit out the customer id?
+def customer_create(first_name: str, last_name: str, email: str, phone: str, password: str) -> str:
+    url = f"https://{storename}.{endpoint}"
+
+    body = {
+        "query": dedent(
+            f"""
+                mutation customerCreate($input: CustomerCreateInput!) {{
+                    customerCreate(input: $input) {{
+                        customer {{
+                            acceptsMarketing
+                            email
+                            firstName
+                            lastName
+                            phone
+                        }}
+                        customerUserErrors {{
+                            field
+                            message
+                            code
+                        }}
+                    }}
+                }}
+            """
+        ),
+        "variables": {
+            "input": {"acceptsMarketing": True, "email": email, "firstName": first_name, "lastName": last_name,
+                      "phone": phone, "password": password}}
+    }
+
+    try:
+        full_response = post(
+            url,
+            json=body,
+            headers={"X-Shopify-Storefront-Access-Token": access_token},
+            timeout=timeout
+        ).json()
+
+        return full_response
+
+    except Exception as e:
+        logging.info("There was an error")
+
+
+def get_cart_details(cart_id: str) -> str:
+
+
+
+# print(customer_create("Jessica", "Roche", "aodhanroche@gmail.com", "+13034754335", "password123"))
+# print(get_product_id("The Minimal Snowboard"))
+# print(add_to_cart("gid://shopify/Cart/Z2NwLXVzLWNlbnRyYWwxOjAxSEhGU1pUUTVGSEpOVDU0WUJKWjJTRUNF", "The Minimal Snowboard"))
 # print(create_cart())
 # print(get_product_description("The Minimal Snowboard"))
 # print(get_specific_product("The Minimal Snowboard"))
