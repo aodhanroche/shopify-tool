@@ -8,7 +8,6 @@ endpoint = "myshopify.com/api/2023-10/graphql.json"
 timeout = 10
 
 
-# What products do you have?
 def get_all_products() -> list:
     url = f"https://{storename}.{endpoint}"
 
@@ -226,16 +225,17 @@ def create_cart() -> str:
 
 
 # Broken
-def add_to_cart(cart_id: str, product: str) -> str:
+def add_to_cart(cart_id: str, product_id: str) -> str:
     url = f"https://{storename}.{endpoint}"
-    product_id = get_product_id(product)
+    # product_id = get_product_id(product)
     print(product_id)
     body = {
         "query": dedent(
             """
-                mutation cartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
-                    cartLinesAdd(cartId: $cartId, lines: $lines) {
+                mutation cartLinesAdd($cartId: ID!, $id: ID!, $lines: [CartLineInput!]!) {
+                    cartLinesAdd(cartId: $cartId, lines: $lines, id: $id) {
                         cart {
+                            id
                             lines {
                                 edges {
                                     node {
@@ -254,7 +254,6 @@ def add_to_cart(cart_id: str, product: str) -> str:
             """
         ),
         "variables": {
-            "merchandise": product,
             "cartId": cart_id,
             "lines": [
                 {
@@ -279,7 +278,6 @@ def add_to_cart(cart_id: str, product: str) -> str:
         logging.info("There was an error")
 
 
-# Creates a customer
 # Need to tailor response
 def customer_create(first_name: str, last_name: str, email: str, phone: str, password: str) -> str:
     url = f"https://{storename}.{endpoint}"
