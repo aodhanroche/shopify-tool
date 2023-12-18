@@ -155,7 +155,7 @@ def get_product_id(product: str) -> id:
         ).json()
 
         result = full_response['data']['products']['edges'][0]['node']['id']
-        return f"{result}"
+        return result
 
     except Exception as e:
         logging.info("There was an error")
@@ -225,34 +225,44 @@ def create_cart() -> str:
         logging.info("There was an error")
 
 
-# Broken V
+# Broken
 def add_to_cart(cart_id: str, product: str) -> str:
     url = f"https://{storename}.{endpoint}"
     product_id = get_product_id(product)
+    print(product_id)
     body = {
         "query": dedent(
-            f"""
-                mutation cartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {{
-                  cartLinesAdd(cartId: $cartId, lines: $lines) {{
-                    cart {{
-                        lines {{
-                            edges {{
-                                node{{
-                                    id
-                                    quantity
-                                }}
-                            }}
-                        }}
-                    }}
-                    userErrors {{
-                      field
-                      message
-                    }}
-                  }}
-                }}
+            """
+                mutation cartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
+                    cartLinesAdd(cartId: $cartId, lines: $lines) {
+                        cart {
+                            lines {
+                                edges {
+                                    node {
+                                        merchandise
+                                        quantity
+                                    }
+                                }
+                            }
+                        }
+                        userErrors {
+                            field
+                            message
+                        }
+                    }
+                }
             """
         ),
-        "variables": {"cartId": cart_id, "lines": product, "id": product_id, "quantity": 1}
+        "variables": {
+            "merchandise": product,
+            "cartId": cart_id,
+            "lines": [
+                {
+                    "merchandiseId": product_id,
+                    "quantity": 1
+                }
+            ]
+        }
     }
 
     try:
@@ -269,8 +279,8 @@ def add_to_cart(cart_id: str, product: str) -> str:
         logging.info("There was an error")
 
 
-# Creates a customer, but exceeded some kind of limit before could tailor the response.
-# We would want it to spit out the customer id?
+# Creates a customer
+# Need to tailor response
 def customer_create(first_name: str, last_name: str, email: str, phone: str, password: str) -> str:
     url = f"https://{storename}.{endpoint}"
 
@@ -315,13 +325,73 @@ def customer_create(first_name: str, last_name: str, email: str, phone: str, pas
 
 
 def get_cart_details(cart_id: str) -> str:
+    url = f"https://{storename}.{endpoint}"
+
+    body = {
+        "query": dedent(
+            """
+                query cart($id: ID!) { 
+                    cart(id: $id) {
+                        createdAt
+                        totalQuantity
+                    }
+                }
+            """
+        ),
+        "variables": {"id": cart_id},
+    }
+
+    try:
+        full_response = post(
+            url,
+            json=body,
+            headers={"X-Shopify-Storefront-Access-Token": access_token},
+            timeout=timeout
+        ).json()
+
+        quantity_response = full_response['data']['cart']['totalQuantity']
+        return f"You have {quantity_response} products in your cart"
+
+    except Exception as e:
+        logging.info("There was an error")
 
 
+# For some reason ProductPricing needs the handle in handle-with-dashes format where the get_id function takes both
+def get_product_price(product: str) -> str:
+    url = f"https://{storename}.{endpoint}"
 
-# print(customer_create("Jessica", "Roche", "aodhanroche@gmail.com", "+13034754335", "password123"))
-# print(get_product_id("The Minimal Snowboard"))
-# print(add_to_cart("gid://shopify/Cart/Z2NwLXVzLWNlbnRyYWwxOjAxSEhGU1pUUTVGSEpOVDU0WUJKWjJTRUNF", "The Minimal Snowboard"))
-# print(create_cart())
-# print(get_product_description("The Minimal Snowboard"))
-# print(get_specific_product("The Minimal Snowboard"))
-# print(get_all_products())
+    body = {
+        "query": dedent(
+            f"""
+                query ProductPricing($handle: String!, $first: Int) @inContext(country: US) {{ 
+                    product(handle: $handle) {{ 
+                        variants(first: $first) {{  
+                            nodes {{ 
+                                price {{
+                                    amount
+                                    currencyCode
+                                }}
+                            }} 
+                        }}
+                    }}
+                }}
+            """
+        ),
+        "variables": {"first": 1, "handle": product},
+    }
+
+    try:
+        full_response = post(
+            url,
+            json=body,
+            headers={"X-Shopify-Storefront-Access-Token": access_token},
+            timeout=timeout
+        ).json()
+
+        result = full_response['data']['product']['variants']['nodes'][0]['price']['amount']
+        return f"This product is ${result}"
+
+    except Exception as e:
+        logging.info("There was an error")
+
+
